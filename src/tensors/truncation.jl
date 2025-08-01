@@ -81,7 +81,9 @@ function _compute_truncdim(Σdata, trunc::TruncationDimension, p=2)
             while (dim_trun>0) && ((es[ind-1]-es[ind])/(es[ind]) < abs(trunc.multiplet_tol) ) 
                 dim_trun -=1
                 ind=min(dim_full,dim_trun+1)
-                println((dim_trun, es[ind-1],es[ind]))
+                if ind>1
+                    println((dim_trun, es[ind-1],es[ind]))
+                end
             end
             truncdim[sector]=dim_trun
         end

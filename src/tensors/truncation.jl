@@ -14,8 +14,9 @@ truncerr(epsilon::Real) = TruncationError(epsilon)
 
 struct TruncationDimension <: TruncationScheme
     dim::Int
+    multiplet_tol::Real
 end
-truncdim(d::Int) = TruncationDimension(d)
+truncdim(d::Int; multiplet_tol::Real=0) = TruncationDimension(d, multiplet_tol)
 
 struct TruncationSpace{S<:ElementarySpace} <: TruncationScheme
     space::S
@@ -66,6 +67,14 @@ function _compute_truncdim(Σdata, trunc::TruncationDimension, p=2)
         cmin = _findnexttruncvalue(Σdata, truncdim, p)
         isnothing(cmin) && break
         truncdim[cmin] -= 1
+    end
+
+    #check degenerate multiplet
+    if abs(trunc.multiplet_tol)>0
+        for (sec_, dim_trun) in truncdim
+            dim_full=Σdata[sec_]
+            println((sec_,dim_full,dim_trun))
+        end
     end
     return truncdim
 end

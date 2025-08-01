@@ -72,7 +72,7 @@ function _compute_truncdim(Σdata, trunc::TruncationDimension, p=2)
     #check degenerate multiplet
     if abs(trunc.multiplet_tol)>0
         for (sec_, dim_trun) in truncdim
-            dim_full=Σdata[sec_]
+            dim_full=length(Σdata[sec_])
             println((sec_,dim_full,dim_trun))
         end
     end

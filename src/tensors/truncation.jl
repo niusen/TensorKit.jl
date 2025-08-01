@@ -72,13 +72,16 @@ function _compute_truncdim(Σdata, trunc::TruncationDimension, p=2)
     #check degenerate multiplet
     if abs(trunc.multiplet_tol)>0
         for (sector, dim_trun) in truncdim
+            println(sector)
             es=Σdata[sector]
             dim_full=length(es)
             println((sector,dim_full,dim_trun))
             ind=min(dim_full,dim_trun+1)
+            println((es[ind-1],es[ind]))
             while (dim_trun>0) && ((es[ind-1]-es[ind])/(es[ind]) < abs(trunc.multiplet_tol) ) 
-                ind=min(dim_full,dim_trun+1)
                 dim_trun -=1
+                ind=min(dim_full,dim_trun+1)
+                println((es[ind-1],es[ind]))
             end
             truncdim[sector]=dim_trun
         end

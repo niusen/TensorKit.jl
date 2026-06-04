@@ -2,6 +2,7 @@
 
 ```@meta
 CurrentModule = TensorKit
+CollapsedDocStrings = true
 ```
 
 ## Type hierarchy
@@ -58,7 +59,7 @@ const SU₂Space = SU2Space
 
 ## [Methods](@id s_spacemethods)
 
-Methods often apply similar to e.g. spaces and corresponding tensors or tensor maps, e.g.:
+Methods often apply similarly to e.g. spaces and corresponding tensors or tensor maps, e.g.:
 
 ```@docs
 field

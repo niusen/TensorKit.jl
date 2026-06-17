@@ -8,6 +8,11 @@ using MatrixAlgebraKit: remove_qr_gauge_dependence!, remove_lq_gauge_dependence!
 using Mooncake
 using Random
 
+function call_and_zero!(f!, A, alg)
+    F′ = f!(A, alg)
+    MatrixAlgebraKit.zero!(A)
+    return F′
+end
 
 mode = Mooncake.ReverseMode
 rng = Random.default_rng()
@@ -18,7 +23,6 @@ eltypes = (Float64, ComplexF64)
 @timedtestset "Mooncake - Factorizations: $(TensorKit.type_repr(sectortype(eltype(V)))) ($T)" for V in spacelist, T in eltypes
     atol = default_tol(T)
     rtol = default_tol(T)
-
     @timedtestset "QR" begin
         A = randn(T, V[1] ⊗ V[2] ← V[1] ⊗ V[2])
 
@@ -29,8 +33,7 @@ eltypes = (Float64, ComplexF64)
         ΔQR = Mooncake.randn_tangent(rng, QR)
         remove_qr_gauge_dependence!(ΔQR..., A, QR...)
         Mooncake.TestUtils.test_rule(rng, qr_full, A; output_tangent = ΔQR, atol, rtol, mode, is_primitive = false)
-        # TODO:
-        # Mooncake.TestUtils.test_rule(rng, qr_null, A; atol, rtol, mode, is_primitive = false)
+        #Mooncake.TestUtils.test_rule(rng, qr_null, A; atol, rtol, mode, is_primitive = false)
 
         A = randn(T, V[1] ⊗ V[2] ⊗ V[3] ← (V[4] ⊗ V[5])')
 
@@ -41,8 +44,7 @@ eltypes = (Float64, ComplexF64)
         ΔQR = Mooncake.randn_tangent(rng, QR)
         remove_qr_gauge_dependence!(ΔQR..., A, QR...)
         Mooncake.TestUtils.test_rule(rng, qr_full, A; output_tangent = ΔQR, atol, rtol, mode, is_primitive = false)
-        # TODO:
-        # Mooncake.TestUtils.test_rule(rng, qr_null, A; atol, rtol, mode, is_primitive = false)
+        #Mooncake.TestUtils.test_rule(rng, qr_null, A; atol, rtol, mode, is_primitive = false)
     end
 
     @timedtestset "LQ" begin
@@ -50,25 +52,23 @@ eltypes = (Float64, ComplexF64)
 
         Mooncake.TestUtils.test_rule(rng, lq_compact, A; atol, rtol, mode, is_primitive = false)
 
-        # qr_full/qr_null requires being careful with gauges
+        # lq_full/lq_null requires being careful with gauges
         LQ = lq_full(A)
         ΔLQ = Mooncake.randn_tangent(rng, LQ)
         remove_lq_gauge_dependence!(ΔLQ..., A, LQ...)
         Mooncake.TestUtils.test_rule(rng, lq_full, A; output_tangent = ΔLQ, atol, rtol, mode, is_primitive = false)
-        # TODO:
-        # Mooncake.TestUtils.test_rule(rng, lq_null, A; atol, rtol, mode, is_primitive = false)
+        #Mooncake.TestUtils.test_rule(rng, lq_null, A; atol, rtol, mode, is_primitive = false)
 
         A = randn(T, V[1] ⊗ V[2] ← (V[3] ⊗ V[4] ⊗ V[5])')
 
         Mooncake.TestUtils.test_rule(rng, lq_compact, A; atol, rtol, mode, is_primitive = false)
 
-        # qr_full/qr_null requires being careful with gauges
+        # lq_full/lq_null requires being careful with gauges
         LQ = lq_full(A)
         ΔLQ = Mooncake.randn_tangent(rng, LQ)
         remove_lq_gauge_dependence!(ΔLQ..., A, LQ...)
         Mooncake.TestUtils.test_rule(rng, lq_full, A; output_tangent = ΔLQ, atol, rtol, mode, is_primitive = false)
-        # TODO:
-        # Mooncake.TestUtils.test_rule(rng, lq_null, A; atol, rtol, mode, is_primitive = false)
+        #Mooncake.TestUtils.test_rule(rng, lq_null, A; atol, rtol, mode, is_primitive = false)
     end
 
     @timedtestset "Eigenvalue decomposition" begin
@@ -105,6 +105,15 @@ eltypes = (Float64, ComplexF64)
             ΔUSVᴴtrunc = (Mooncake.randn_tangent(rng, Base.front(USVᴴtrunc))..., zero(last(USVᴴtrunc)))
             remove_svd_gauge_dependence!(ΔUSVᴴtrunc[1], ΔUSVᴴtrunc[3], Base.front(USVᴴtrunc)...)
             Mooncake.TestUtils.test_rule(rng, svd_trunc, t, alg; output_tangent = ΔUSVᴴtrunc, atol, rtol, mode)
+
+            V_trunc = spacetype(t)(c => min(size(b)...) ÷ 2 for (c, b) in blocks(t))
+            trunc = truncspace(V_trunc)
+            USVᴴ = svd_compact(t)
+            alg = MatrixAlgebraKit.select_algorithm(svd_trunc, t, nothing; trunc)
+            USVᴴtrunc = svd_trunc(t, alg)
+            ΔUSVᴴtrunc = (Mooncake.randn_tangent(rng, Base.front(USVᴴtrunc))..., zero(last(USVᴴtrunc)))
+            remove_svd_gauge_dependence!(ΔUSVᴴtrunc[1], ΔUSVᴴtrunc[3], Base.front(USVᴴtrunc)...)
+            Mooncake.TestUtils.test_rule(rng, call_and_zero!, svd_trunc!, t, alg; output_tangent = ΔUSVᴴtrunc, atol, rtol, mode, is_primitive = false)
         end
     end
 end

@@ -65,7 +65,7 @@ end
 function MatrixAlgebraKit.findtruncated_svd(
         values::CuSectorVector, strategy::TensorKit.Factorizations.TruncationMultiplet
     )
-    values_cpu = TensorKit.SectorVector(Adapt.adapt(Vector, parent(values)), values.structure)
+    values_cpu = TensorKit.SectorVector(Array(parent(values)), values.structure)
     return MatrixAlgebraKit.findtruncated_svd(values_cpu, strategy)
 end
 

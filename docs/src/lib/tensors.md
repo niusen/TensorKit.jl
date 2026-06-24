@@ -208,4 +208,5 @@ The exact truncation strategy can be controlled through the strategies defined i
 
 ```@docs
 truncspace
+truncmultiplet
 ```

@@ -3,7 +3,7 @@
 # using submodule here to import MatrixAlgebraKit functions without polluting namespace
 module Factorizations
 
-export copy_oftype, factorisation_scalartype, one!, truncspace
+export copy_oftype, factorisation_scalartype, one!, truncspace, truncmultiplet
 
 using ..TensorKit
 using ..TensorKit: AdjointTensorMap, SectorDict, SectorVector,

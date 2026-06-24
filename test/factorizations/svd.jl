@@ -1,11 +1,29 @@
 using Test, TestExtras
 using TensorKit
 using LinearAlgebra: LinearAlgebra
-using MatrixAlgebraKit: DefaultAlgorithm, defaulttol, diagview
+using MatrixAlgebraKit: DefaultAlgorithm, defaulttol, diagview, findtruncated
 
 spacelist = factorization_spacelist(fast_tests)
 
 eltypes = (Float32, ComplexF64)
+
+@testset "multiplet-safe rank truncation" begin
+    V = U1Space(0 => 2, 1 => 2)
+    D = DiagonalTensorMap([10.0, 9.0, 9.0, 8.0], V)
+    values = diagview(D)
+
+    plain = findtruncated(values, truncrank(2))
+    @test count(parent(plain)) == 2
+
+    protected = findtruncated(values, truncmultiplet(2; multiplet_tol = 1.0e-12))
+    @test protected[U1Irrep(0)] == [1]
+    @test isempty(protected[U1Irrep(1)])
+
+    U, S, Vᴴ, ϵ = svd_trunc(D; trunc = truncmultiplet(2; multiplet_tol = 1.0e-12))
+    @test U * S * Vᴴ ≈ DiagonalTensorMap([10.0, 0.0, 0.0, 0.0], V)
+    @test parent(diagview(S)) == [10.0]
+    @test ϵ ≈ sqrt(9.0^2 + 9.0^2 + 8.0^2)
+end
 
 for V in spacelist
     I = sectortype(first(V))

@@ -27,6 +27,42 @@ end
 
 TensorKit.spacetype(::Type{<:TruncationSpace{S}}) where {S} = S
 
+"""
+    TruncationMultiplet(strategy::TruncationStrategy, by::Function, rev::Bool, multiplet_tol::Real)
+
+Truncation strategy wrapper that first applies `strategy`, and then reduces the global selection
+to avoid placing the truncation boundary inside values that are degenerate up to `multiplet_tol`.
+
+See also [`truncmultiplet`](@ref).
+"""
+struct TruncationMultiplet{S <: TruncationStrategy, F, T <: Real} <: TruncationStrategy
+    strategy::S
+    by::F
+    rev::Bool
+    multiplet_tol::T
+end
+
+"""
+    truncmultiplet(strategy::TruncationStrategy; by=abs, rev::Bool=true, multiplet_tol::Real)
+    truncmultiplet(howmany::Integer; by=abs, rev::Bool=true, multiplet_tol::Real)
+
+Truncation strategy that avoids cutting through values that are degenerate in the globally sorted
+spectrum across all sectors.
+The integer form is equivalent to `truncrank(howmany; by, rev)`, followed by this degeneracy
+protection.
+"""
+function truncmultiplet(
+        strategy::TruncationStrategy; by = abs, rev::Bool = true, multiplet_tol::Real
+    )
+    multiplet_tol >= 0 || throw(ArgumentError("multiplet_tol should be non-negative"))
+    return TruncationMultiplet(strategy, by, rev, multiplet_tol)
+end
+function truncmultiplet(
+        howmany::Integer; by = abs, rev::Bool = true, multiplet_tol::Real
+    )
+    return truncmultiplet(truncrank(howmany; by, rev); by, rev, multiplet_tol)
+end
+
 # truncate!
 # ---------
 _blocklength(d::Integer, ind) = _blocklength(Base.OneTo(d), ind)
@@ -203,6 +239,41 @@ function MAK.findtruncated(values::SectorVector, strategy::TruncationByOrder)
 end
 # disambiguate
 MAK.findtruncated_svd(values::SectorVector, strategy::TruncationByOrder) =
+    MAK.findtruncated(values, strategy)
+
+function _multiplet_safe_indices(values::SectorVector, ind, by, rev::Bool, multiplet_tol::Real)
+    keep = similar(values, Bool)
+    fill!(parent(keep), false)
+    for c in keys(values)
+        keep[c][ind[c]] .= true
+    end
+
+    if length(values) > 1 && !iszero(multiplet_tol)
+        data = parent(values)
+        keepdata = parent(keep)
+        order = sortperm(data; by, rev)
+
+        for i in (length(order) - 1):-1:1
+            j_keep = order[i]
+            j_drop = order[i + 1]
+            if keepdata[j_keep] && !keepdata[j_drop]
+                v_keep = by(data[j_keep])
+                v_drop = by(data[j_drop])
+                if abs(v_keep - v_drop) <= multiplet_tol * max(abs(v_keep), abs(v_drop))
+                    keepdata[j_keep] = false
+                end
+            end
+        end
+    end
+
+    return SectorDict{sectortype(values), Vector{Int}}(c => findall(keep[c]) for c in keys(values))
+end
+
+function MAK.findtruncated(values::SectorVector, strategy::TruncationMultiplet)
+    ind = MAK.findtruncated(values, strategy.strategy)
+    return _multiplet_safe_indices(values, ind, strategy.by, strategy.rev, strategy.multiplet_tol)
+end
+MAK.findtruncated_svd(values::SectorVector, strategy::TruncationMultiplet) =
     MAK.findtruncated(values, strategy)
 
 function MAK.findtruncated(values::SectorVector, strategy::TruncationByFilter)

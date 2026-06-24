@@ -62,6 +62,12 @@ for strat in (:(MatrixAlgebraKit.TruncationByOrder), :(MatrixAlgebraKit.Truncati
     end
 end
 
+function MatrixAlgebraKit.findtruncated_svd(
+        values::CuSectorVector, strategy::TensorKit.Factorizations.TruncationMultiplet
+    )
+    return MatrixAlgebraKit.findtruncated_svd(Adapt.adapt(Vector, values), strategy)
+end
+
 function MatrixAlgebraKit.findtruncated_svd(values::CuSectorVector, strategy::MatrixAlgebraKit.TruncationByValue)
     atol = TensorKit.Factorizations.rtol_to_atol(values, strategy.p, strategy.atol, strategy.rtol)
     strategy′ = trunctol(; atol, strategy.by, strategy.keep_below)
